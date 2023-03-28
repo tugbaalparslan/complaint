@@ -1,18 +1,16 @@
 package com.example.complaint.service;
 
 
+import com.example.complaint.communications.error.ErrorCodes;
+import com.example.complaint.communications.messages.ErrorMessages;
 import com.example.complaint.dao.UserRepository;
 import com.example.complaint.entity.User;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.beans.Beans;
-import java.net.http.HttpResponse;
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,13 +30,17 @@ public List<User> findAll(){
 }
 
 
-public void saveUser(User user){
-    userRepository.save(user);
+public User saveUser(User user){
+    try {
+        userRepository.save(user);
+    } catch(Exception e) {
+        throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, ErrorMessages.getMessage(ErrorCodes.SERVER_ERROR));
+    }
+    return user;
 }
 
 public User getUser(int id){
-    Optional<User> user;
-    user = userRepository.findById(id);
+    Optional<User> user = userRepository.findById(id);
 
     if(user.isPresent())
         return user.get();
@@ -46,6 +48,14 @@ public User getUser(int id){
        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User Not Found!");
 }
 
+
+public ResponseEntity<List<User>> searchUserByPhone(String phone) {
+    List<User> users = userRepository.findByPhoneNumber(phone);
+    if(users == null || users.isEmpty())
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User Not Found!");
+
+    return ResponseEntity.status(HttpStatus.OK).body(users);
+}
 
 public void deleteUser(int id){
     // check if user exists
